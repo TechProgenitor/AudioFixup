@@ -46,24 +46,24 @@ private:
     mach_vm_address_t orgSetPowerState {};
     
     /**
-     * nodeID wrapper
+     *  Prototype of orgNodeID
      */
-    static uint8_t wrapNodeID(AppleHDANode *that);
+    using t_NodeID = uint8_t (*)(AppleHDANode *);
     
     /**
-     * Original nodeID
+     *  Original nodeID function
      */
-    mach_vm_address_t orgNodeID {};
+    t_NodeID orgNodeID {};
     
     /**
-     * vendorProductID wrapper
+     *  Prototype of orgVendorProductID
      */
-    static uint64_t wrapVendorProductID(AppleHDANode *that);
+    using t_VendorProductID = uint64_t (*)(AppleHDANode *);
     
     /**
-     * Original vendorProductID
+     *  Original vendorProductID function
      */
-    mach_vm_address_t orgVendorProductID {};
+    t_VendorProductID orgVendorProductID {};
 
     /**
      * Concurrent Thread for Deferring D0

@@ -35,12 +35,20 @@ private:
     
     static void populateCodecInfo(IORegistryEntry *currentGPU, IORegistryEntry *framebuffer, const char *propertyName);
     static void populateCodecInfoBytes(IORegistryEntry *currentGPU, IORegistryEntry *framebuffer, const char *propertyName, uint byteOffset);
+    
+    /**
+     *  Prototype of wrapHDA
+     */
+    using t_wrapHDA = IOReturn (*)(void*, IORegistryEntry*, const char*, uint*);
 
     /**
-     * getOSDataOrOSNumberPropertyFromEntry wrapper
+     * getOSDataOrOSNumberPropertyFromEntry handler
      */
-    static IOReturn wrapGetOSDataOrOSNumberPropertyFromEntry(void *controller, IORegistryEntry *framebuffer, const char *property, uint *value, IOReturn (*wrapFunction)(void*, IORegistryEntry*, const char*, uint*), mach_vm_address_t orgFunction);
+    static IOReturn wrapGetOSDataOrOSNumberPropertyFromEntry(void *controller, IORegistryEntry *framebuffer, const char *property, uint *value, t_wrapHDA wrapFunction, mach_vm_address_t orgFunction);
     
+    /**
+     * getOSDataOrOSNumberPropertyFromEntry wrappers
+     */
     static IOReturn wrapAppleHDA(void *controller, IORegistryEntry *framebuffer, const char *property, uint *value);
     static IOReturn wrapAppleGFXHDA(void *controller, IORegistryEntry *framebuffer, const char *property, uint *value);
     

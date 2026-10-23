@@ -131,7 +131,7 @@ void CodecInfo::populateCodecInfoBytes(IORegistryEntry *currentGPU, IORegistryEn
     newCodecInfo->release();
 }
 
-IOReturn CodecInfo::wrapGetOSDataOrOSNumberPropertyFromEntry(void *controller, IORegistryEntry *framebuffer, const char *property, uint *value, IOReturn (*wrapFunction)(void*, IORegistryEntry*, const char*, uint*), mach_vm_address_t orgFunction) {
+IOReturn CodecInfo::wrapGetOSDataOrOSNumberPropertyFromEntry(void *controller, IORegistryEntry *framebuffer, const char *property, uint *value, t_wrapHDA wrapFunction, mach_vm_address_t orgFunction) {
     
     // Verify that the arguments are not null
     if ((framebuffer == nullptr) || (property == nullptr) || (value == nullptr))
