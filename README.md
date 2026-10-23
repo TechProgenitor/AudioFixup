@@ -45,7 +45,7 @@ The following properties are added to the `IGPU` and/or `GFX#` device(s).
 | Property | Description |
 |---------|-------------|
 | `audio-patch-enable` | Enable the audio patching mechanism. |
-| `audio-port#-info` | Set the `audio-codec-info` device property for a given `port-number` when hotplugged to a specified value. <br><br> This property takes precedence over the individual byte-configuration properties. When it is specified, the individual byte properties are ignored. |
+| `audio-port#-info` | Set the `audio-codec-info` device property for a given `port-number` when hotplugged to a specified value. <br><br> This property takes precedence over the individual byte-configuration properties. When it is specified, the individual byte properties below are ignored. |
 | `audio-port#-adr` | Set the `Codec Address` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-afg` | Set the `Audio Function Group` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-pin` | Set the `Digital Pin` byte for a given `port-number` when hotplugged to a specified value. |
