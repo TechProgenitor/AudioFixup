@@ -32,6 +32,9 @@ private:
      */
     void processHDA(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
     void processGFXHDA(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+    
+    static void populateCodecInfo(IORegistryEntry *currentGPU, IORegistryEntry *framebuffer, const char *propertyName);
+    static void populateCodecInfoBytes(IORegistryEntry *currentGPU, IORegistryEntry *framebuffer, const char *propertyName, uint byteOffset);
 
     /**
      * getOSDataOrOSNumberPropertyFromEntry wrapper

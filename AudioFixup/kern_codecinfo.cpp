@@ -50,6 +50,87 @@ bool CodecInfo::init() {
 
 void CodecInfo::deinit() {}
 
+void CodecInfo::populateCodecInfo(IORegistryEntry *currentGPU, IORegistryEntry *framebuffer, const char *propertyName) {
+    
+    OSObject *codecInfo = currentGPU->getProperty(propertyName);
+    uint32_t codecInfoValue = 0;
+    
+    // Checks if the input is data
+    if (OSData *data = OSDynamicCast(OSData, codecInfo)) {
+        
+        if (data->getLength() == 4) {
+            memcpy(&codecInfoValue, data->getBytesNoCopy(), 4);
+            
+            if (framebuffer->setProperty("audio-codec-info", &codecInfoValue, 4)) {
+                DBGLOG("codecinfo", "Successfully replaced %s", propertyName);
+            } else {
+                SYSLOG("codecinfo", "Failed to replace %s", propertyName);
+            }
+            
+            return;
+        }
+    }
+        
+    // Checks if the input is a number
+    else if (OSNumber *number = OSDynamicCast(OSNumber, codecInfo)) {
+        
+        if (number->unsigned64BitValue() <= UINT32_MAX) {
+            codecInfoValue = number->unsigned32BitValue();
+            
+            if (framebuffer->setProperty("audio-codec-info", &codecInfoValue, 4)) {
+                DBGLOG("codecinfo", "Successfully replaced %s", propertyName);
+            } else {
+                SYSLOG("codecinfo", "Failed to replace %s", propertyName);
+            }
+            
+            return;
+        }
+    }
+}
+
+void CodecInfo::populateCodecInfoBytes(IORegistryEntry *currentGPU, IORegistryEntry *framebuffer, const char *propertyName, uint byteOffset) {
+    
+    // Search for the requested property
+    OSData *propertyInfo = OSDynamicCast(OSData, currentGPU->getProperty(propertyName));
+
+    if (!propertyInfo || propertyInfo->getLength() == 0)
+        return;
+    
+    // Retrieve the requested property value
+    uint8_t propertyValue = static_cast<const uint8_t *>(propertyInfo->getBytesNoCopy())[0];
+    
+    // Retrieve the current audio-codec-info value
+    OSData *currentCodecInfo = OSDynamicCast(OSData, framebuffer->getProperty("audio-codec-info"));
+    uint8_t modifyCodecInfo[4] = {};
+    
+    if (currentCodecInfo && currentCodecInfo->getLength() == 4) {
+        memcpy(modifyCodecInfo, currentCodecInfo->getBytesNoCopy(), sizeof(modifyCodecInfo));
+    }
+    
+    // Check that the byteOffset is between 0-3
+    if (byteOffset >= sizeof(modifyCodecInfo))
+        return;
+    
+    // Modify the audio-codec-info value
+    modifyCodecInfo[byteOffset] = propertyValue;
+
+    // Replace the audio-codec-info value
+    OSData *newCodecInfo = OSData::withBytes(modifyCodecInfo, sizeof(modifyCodecInfo));
+    
+    if (!newCodecInfo) {
+        SYSLOG("codecinfo", "Failed to create new audio-codec-info OSData for %s", propertyName);
+        return;
+    }
+
+    if (framebuffer->setProperty("audio-codec-info", newCodecInfo)) {
+        DBGLOG("codecinfo", "Successfully replaced %s", propertyName);
+    } else {
+        SYSLOG("codecinfo", "Failed to replace %s", propertyName);
+    }
+    
+    newCodecInfo->release();
+}
+
 IOReturn CodecInfo::wrapGetOSDataOrOSNumberPropertyFromEntry(void *controller, IORegistryEntry *framebuffer, const char *property, uint *value, IOReturn (*wrapFunction)(void*, IORegistryEntry*, const char*, uint*), mach_vm_address_t orgFunction) {
     
     // Verify that the arguments are not null
@@ -64,10 +145,6 @@ IOReturn CodecInfo::wrapGetOSDataOrOSNumberPropertyFromEntry(void *controller, I
         IOReturn result = FunctionCast(wrapFunction, orgFunction)(controller, framebuffer, "port-number", &portNumber);
         if (result != kIOReturnSuccess)
             return FunctionCast(wrapFunction, orgFunction)(controller, framebuffer, property, value);
-        
-        // Convert the port-number value into a device property to look for
-        char propertyName[25];
-        snprintf(propertyName, sizeof(propertyName), "audio-port%u-codec-info", portNumber);
         
         // See which GPU has our custom device property
         IORegistryEntry *currentGPU = framebuffer;
@@ -86,27 +163,29 @@ IOReturn CodecInfo::wrapGetOSDataOrOSNumberPropertyFromEntry(void *controller, I
         if (!enabled || enabled->getLength() == 0 || static_cast<const uint8_t *>(enabled->getBytesNoCopy())[0] == 0)
             return FunctionCast(wrapFunction, orgFunction)(controller, framebuffer, property, value);
         
-        // Get our custom device property value and replace the current codec information
-        OSObject *codecInfo = currentGPU->getProperty(propertyName);
-        uint32_t codecValue = 0;
+        // GPU lookup didn't screw up, and we want to patch the audio-codec-info value
         
-        // Checks if the input is data
-        if (OSData *data = OSDynamicCast(OSData, codecInfo)) {
-            if (data->getLength() == 4) {
-                memcpy(&codecValue, data->getBytesNoCopy(), 4);
-                framebuffer->setProperty("audio-codec-info", &codecValue, 4);
-            }
-            
-        // Checks if the input is a number
-        } else if (OSNumber *number = OSDynamicCast(OSNumber, codecInfo)) {
-            if (number->unsigned64BitValue() <= UINT32_MAX) {
-                codecValue = number->unsigned32BitValue();
-
-                framebuffer->setProperty("audio-codec-info", &codecValue, 4);
-            }
-        }
+        char portAdr[32];
+        snprintf(portAdr, sizeof(portAdr), "audio-port%u-adr", portNumber);
+        callbackCodecInfo->populateCodecInfoBytes(currentGPU, framebuffer, portAdr, 0);
         
-        // Let the original function run and cast the value to the third argument
+        char portAfg[32];
+        snprintf(portAfg, sizeof(portAfg), "audio-port%u-afg", portNumber);
+        callbackCodecInfo->populateCodecInfoBytes(currentGPU, framebuffer, portAfg, 1);
+        
+        char portPin[32];
+        snprintf(portPin, sizeof(portPin), "audio-port%u-pin", portNumber);
+        callbackCodecInfo->populateCodecInfoBytes(currentGPU, framebuffer, portPin, 2);
+        
+        char portEnd[32];
+        snprintf(portEnd, sizeof(portEnd), "audio-port%u-end", portNumber);
+        callbackCodecInfo->populateCodecInfoBytes(currentGPU, framebuffer, portEnd, 3);
+        
+        char portInfo[32];
+        snprintf(portInfo, sizeof(portInfo), "audio-port%u-info", portNumber);
+        callbackCodecInfo->populateCodecInfo(currentGPU, framebuffer, portInfo);
+        
+        // Let the original function run and return its value to the third argument
         return FunctionCast(wrapFunction, orgFunction)(controller, framebuffer, property, value);
     }
     

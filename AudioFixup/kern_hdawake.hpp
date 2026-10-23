@@ -48,7 +48,7 @@ private:
     /**
      * nodeID wrapper
      */
-    static int wrapNodeID(AppleHDANode *that);
+    static uint8_t wrapNodeID(AppleHDANode *that);
     
     /**
      * Original nodeID

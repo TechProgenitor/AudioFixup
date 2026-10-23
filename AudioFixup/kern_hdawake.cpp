@@ -59,13 +59,19 @@ uint64_t HDAWAKE::wrapVendorProductID(AppleHDANode *that) {
     return FunctionCast(wrapVendorProductID, callbackHDAWAKE->orgVendorProductID)(that);
 }
 
-int HDAWAKE::wrapNodeID(AppleHDANode *that) {
+uint8_t HDAWAKE::wrapNodeID(AppleHDANode *that) {
     return FunctionCast(wrapNodeID, callbackHDAWAKE->orgNodeID)(that);
 }
 
 int HDAWAKE::wrapSetPowerState(AppleHDANode *that, uint powerState, bool force) {
     
-    if ((powerState == 0) && wrapNodeID(that) == 1) {
+    uint8_t selectedNode = 1;
+    
+    if (lilu_get_boot_args("afgnode", &selectedNode, sizeof(selectedNode))){
+        DBGLOG("afgnode", "found afgnode override %u", selectedNode);
+    }
+    
+    if ((powerState == 0) && wrapNodeID(that) == selectedNode) {
         
         uint64_t selectedCodec = 0;
         
@@ -91,7 +97,7 @@ int HDAWAKE::wrapSetPowerState(AppleHDANode *that, uint powerState, bool force) 
     
     int ret = FunctionCast(wrapSetPowerState, callbackHDAWAKE->orgSetPowerState)(that, powerState, force);
     
-    if (powerState > 0 && wrapNodeID(that) == 1) {
+    if (powerState > 0 && wrapNodeID(that) == selectedNode) {
         
         uint32_t recovery = 0;
         
