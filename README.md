@@ -45,7 +45,7 @@ The following properties are added to the `IGPU` and/or `GFX#` device(s).
 | Property | Description |
 |---------|-------------|
 | `audio-patch-enable` | Enable the audio patching mechanism. |
-| `audio-port#-info` | Set the `audio-codec-info` device property for a given `port-number` when hotplugged to a specified value. <br><br> This property takes precedence over the individual byte-configuration properties. When it is specified, the individual byte settings are ignored. |
+| `audio-port#-info` | Set the `audio-codec-info` device property for a given `port-number` when hotplugged to a specified value. <br><br> This property takes precedence over the individual byte-configuration properties. When it is specified, the individual byte properties are ignored. |
 | `audio-port#-adr` | Set the `Codec Address` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-afg` | Set the `Audio Function Group` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-pin` | Set the `Digital Pin` byte for a given `port-number` when hotplugged to a specified value. |
@@ -56,7 +56,7 @@ The AFG-related arguments only apply to codecs that use AppleHDA.
 
 | Argument | Description |
 |---------|-------------|
-| `audio-codec-info` | Apple boot-arg which sets the `audio-codec-info` device property on all hotplugged ports to a specified value. |
+| `audio-codec-info` | Apple boot-arg which sets the `audio-codec-info` device property on all hotplugged ports to a specified value. <br><br> This argument takes precedence over the `audio-port#-info` property. When it is specified, the `audio-port#-info` property is ignored.|
 | `afgondelay` | Configure the delay in microseconds before the AFG power state is set to D0. |
 | `afgrecovery=1` | Set the AFG power state back to D0 after being set to D1, D2, D3, or D4. |
 | `afgcodec` | Limit the `afgondelay` and `afgrecovery` boot-args to the specified `VendorProductID`. <br><br> `VendorProductID` values are stored in the `CodecList` property of `AppleHDAController` in the IORegistry. |
