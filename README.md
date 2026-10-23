@@ -4,7 +4,7 @@ AudioFixup
 A Lilu plugin for macOS that fixes various audio-related issues.
 
 ### Features
-- Route HDMI and DisplayPort audio outputs to the correct nodes.
+- Configure HDMI and DisplayPort audio codec information.
 - Delay and defer D0 power state transitions for the AFG node.
 - Delay display change handling to give GPU audio codecs time to initialize.
 
