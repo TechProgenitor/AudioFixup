@@ -7,7 +7,7 @@ VERSION := $(shell /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString
 LILU_URL=https://github.com/acidanthera/Lilu.git
 SDK_URL=https://github.com/acidanthera/MacKernelSDK.git
 
-.PHONY: all deps clean distribute
+.PHONY: all deps clean dist
 
 all: deps
 	xcodebuild build $(OPTIONS) -configuration Debug
@@ -28,11 +28,11 @@ deps:
 clean:
 	xcodebuild clean $(OPTIONS) -configuration Debug
 	xcodebuild clean $(OPTIONS) -configuration Release
-	rm -rf ./Distribute ./Lilu ./Lilu.kext ./MacKernelSDK
+	rm -rf ./dist ./Lilu ./Lilu.kext ./MacKernelSDK
 
-.PHONY: distribute
-distribute: all
-	rm -rf ./Distribute
-	mkdir -p ./Distribute
-	ditto -c -k --sequesterRsrc --keepParent --zlibCompressionLevel 9 $(BUILDDIR)/Debug/$(KEXT) ./Distribute/$(DIST)-$(VERSION)-DEBUG.zip
-	ditto -c -k --sequesterRsrc --keepParent --zlibCompressionLevel 9 $(BUILDDIR)/Release/$(KEXT) ./Distribute/$(DIST)-$(VERSION)-RELEASE.zip
+.PHONY: dist
+dist: all
+	rm -rf ./dist
+	mkdir -p ./dist
+	ditto -c -k --sequesterRsrc --keepParent --zlibCompressionLevel 9 $(BUILDDIR)/Debug/$(KEXT) ./dist/$(DIST)-$(VERSION)-DEBUG.zip
+	ditto -c -k --sequesterRsrc --keepParent --zlibCompressionLevel 9 $(BUILDDIR)/Release/$(KEXT) ./dist/$(DIST)-$(VERSION)-RELEASE.zip
