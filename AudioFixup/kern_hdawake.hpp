@@ -12,6 +12,7 @@
 #include <IOKit/IOService.h>
 
 class AppleHDANode;
+class DeviceInfo;
 
 class HDAWAKE {
 public:
@@ -34,6 +35,12 @@ private:
      */
     void processKext(KernelPatcher &patcher, size_t index,
                      mach_vm_address_t address, size_t size);
+    
+    void loadConfiguration(DeviceInfo *deviceInfo);
+    bool afgRecoveryEnabled = false;
+    uint8_t selectedNodeForRecovery = 1;
+    uint32_t selectedCodecForRecovery = 0;
+    uint32_t d0EntryDelay = 0;
 
     /**
      * setPowerState wrapper
