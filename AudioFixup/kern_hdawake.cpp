@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_api.hpp>
+#include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_util.hpp>
 #include "kern_hdawake.hpp"
 #include <IOKit/IOService.h>
@@ -57,73 +58,89 @@ void HDAWAKE::deinit() {
 
 int HDAWAKE::wrapSetPowerState(AppleHDANode *that, uint powerState, bool force) {
     
-    uint8_t selectedNode = 1;
+    bool afgRecoveryEnabled = false;
+    uint8_t selectedNodeForRecovery = 1;
+    uint8_t currentNodeBeingProcessed = 0;
+    bool retrievedCurrentNodeID = callbackHDAWAKE->orgNodeID != nullptr;
+    if (retrievedCurrentNodeID)
+        currentNodeBeingProcessed = callbackHDAWAKE->orgNodeID(that);
     
-    if (lilu_get_boot_args("afgnode", &selectedNode, sizeof(selectedNode))){
-        DBGLOG("afgnode", "found afgnode override %u", selectedNode);
+    uint32_t selectedCodecForRecovery = 0;
+    uint32_t d0EntryDelay = 0;
+    
+    uint32_t currentCodecBeingProcessed = 0;
+    bool retrievedCurrentVendorProductID = callbackHDAWAKE->orgVendorProductID != nullptr;
+    if (retrievedCurrentVendorProductID)
+        currentCodecBeingProcessed = static_cast<uint32_t>(callbackHDAWAKE->orgVendorProductID(that) & 0xffffffff);
+    
+    auto deviceInfo = DeviceInfo::create();
+    if (deviceInfo) {
+        
+        // Retrieve HDEF device properties for AFG configuration.
+        auto hdef = deviceInfo->audioBuiltinAnalog;
+        if (hdef) {
+            
+            OSData *afgRecoveryEnabledValue = OSDynamicCast(OSData, hdef->getProperty("afg-recovery"));
+            if (afgRecoveryEnabledValue && afgRecoveryEnabledValue->getLength() > 0 &&
+                static_cast<const uint8_t *>(afgRecoveryEnabledValue->getBytesNoCopy())[0] != 0) {
+                afgRecoveryEnabled = true;
+            }
+            
+            if (WIOKit::getOSDataValue(hdef, "afg-node", selectedNodeForRecovery)) {
+                DBGLOG("afg", "selected node: %u", selectedNodeForRecovery);
+            }
+            
+            if (WIOKit::getOSDataValue(hdef, "afg-codec", selectedCodecForRecovery)) {
+                DBGLOG("afg", "selected codec: %08X", selectedCodecForRecovery);
+            }
+            
+            if (WIOKit::getOSDataValue(hdef, "afg-delay", d0EntryDelay)) {
+                DBGLOG("afgondelay", "found afgondelay override %u", d0EntryDelay);
+            }
+            
+        } else {
+            SYSLOG("afg", "analog controller not found");
+        }
+        
+        DeviceInfo::deleter(deviceInfo);
     }
     
+    // Delay entry into D0 for the selected AFG node.
     if (powerState == 0 &&
-        callbackHDAWAKE->orgNodeID != nullptr &&
-        callbackHDAWAKE->orgNodeID(that) == selectedNode) {
+        retrievedCurrentNodeID &&
+        currentNodeBeingProcessed == selectedNodeForRecovery) {
         
-        uint64_t selectedCodec = 0;
-        
-        if (lilu_get_boot_args("afgcodec", &selectedCodec, sizeof(selectedCodec))){
-            DBGLOG("afgcodec", "found afgcodec override %llu", selectedCodec);
-        }
-        
-        if (selectedCodec == 0 ||
-            (callbackHDAWAKE->orgVendorProductID != nullptr &&
-            static_cast<uint32_t>(selectedCodec & 0xffffffff) ==
-            static_cast<uint32_t>(callbackHDAWAKE->orgVendorProductID(that) & 0xffffffff))) {
-        
-        uint32_t delay = 0;
-        
-        if (lilu_get_boot_args("afgondelay", &delay, sizeof(delay))){
-            DBGLOG("afgondelay", "found afgondelay override %u", delay);
-        }
+        if (selectedCodecForRecovery == 0 ||
+            (retrievedCurrentVendorProductID &&
+            currentCodecBeingProcessed == selectedCodecForRecovery)) {
             
-            if (delay > 1000000)
-                delay = 1000000;
+            // Delay cannot be longer than one second.
+            if (d0EntryDelay > 1000000)
+                d0EntryDelay = 1000000;
             
-            if (delay > 0)
-                IODelay(delay);
+            if (d0EntryDelay > 0)
+                IODelay(d0EntryDelay);
         }
     }
-    
+            
     int ret = FunctionCast(wrapSetPowerState, callbackHDAWAKE->orgSetPowerState)(that, powerState, force);
     
+    // Schedule deferred AFG recovery when the selected node exits D0.
     if (powerState > 0 &&
-        callbackHDAWAKE->orgNodeID != nullptr &&
-        callbackHDAWAKE->orgNodeID(that) == selectedNode) {
-        
-        uint32_t recovery = 0;
-        
-        if (lilu_get_boot_args("afgrecovery", &recovery, sizeof(recovery))){
-            DBGLOG("afgrecovery", "found afgrecovery override %u", recovery);
-        }
-        
-        if (recovery == 0)
-            return ret;
-        
-        uint64_t selectedCodec = 0;
-        
-        if (lilu_get_boot_args("afgcodec", &selectedCodec, sizeof(selectedCodec))){
-            DBGLOG("afgcodec", "found afgcodec override %llu", selectedCodec);
-        }
-        
-        if (selectedCodec == 0 ||
-            (callbackHDAWAKE->orgVendorProductID != nullptr &&
-            static_cast<uint32_t>(selectedCodec & 0xffffffff) ==
-            static_cast<uint32_t>(callbackHDAWAKE->orgVendorProductID(that) & 0xffffffff))) {
+        retrievedCurrentNodeID &&
+        currentNodeBeingProcessed == selectedNodeForRecovery) {
+                
+        if (afgRecoveryEnabled && (selectedCodecForRecovery == 0 ||
+            (retrievedCurrentVendorProductID &&
+            currentCodecBeingProcessed == selectedCodecForRecovery))) {
             
+            // Queue deferred AFG D0 recovery.
             if (afgRecoveryCall != nullptr) {
                 thread_call_enter1(afgRecoveryCall, reinterpret_cast<thread_call_param_t>(that));
             }
         }
     }
-    
+        
     return ret;
 }
 
