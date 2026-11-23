@@ -56,6 +56,30 @@ void HDAWAKE::deinit() {
     
 }
 
+int HDAWAKE::performFormatChange(AppleHDAEngineOutput *that, IOAudioStream *stream, const IOAudioStreamFormat *format, const IOAudioSampleRate *samplerate) {
+    int ret = FunctionCast(performFormatChange, callbackHDAWAKE->orgPerformFormatChange)(that, stream, format, samplerate);
+    if (callbackHDAWAKE->AFGNodePtr && callbackHDAWAKE->afgForceEnabled) {
+        auto deviceInfo = DeviceInfo::create();
+        if (deviceInfo) {
+            auto hdef = deviceInfo->audioBuiltinAnalog;
+            if (hdef) {
+                uint32_t AFGLowPowerState = 0;
+                if (WIOKit::getOSDataValue(hdef, "AFGLowPowerState", AFGLowPowerState)) {
+                    DBGLOG("afg", "AFG low-power state: %u", AFGLowPowerState);
+                    wrapSetPowerState(callbackHDAWAKE->AFGNodePtr, AFGLowPowerState, true);
+                    if (!callbackHDAWAKE->afgRecoveryEnabled) {
+                        wrapSetPowerState(callbackHDAWAKE->AFGNodePtr, 0, true);
+                    }
+                } else {
+                    SYSLOG("afg", "failed to retrieve AFGLowPowerState");
+                }
+            }
+            DeviceInfo::deleter(deviceInfo);
+        }
+    }
+    return ret;
+}
+
 int HDAWAKE::wrapSetPowerState(AppleHDANode *that, uint powerState, bool force) {
     
     uint8_t currentNodeBeingProcessed = 0;
@@ -67,6 +91,14 @@ int HDAWAKE::wrapSetPowerState(AppleHDANode *that, uint powerState, bool force) 
     bool retrievedCurrentVendorProductID = callbackHDAWAKE->orgVendorProductID != nullptr;
     if (retrievedCurrentVendorProductID)
         currentCodecBeingProcessed = static_cast<uint32_t>(callbackHDAWAKE->orgVendorProductID(that) & 0xffffffff);
+    
+    // Capture AppleHDANode pointer for afg-force device property.
+    // afg-codec device property must be set properly to use this.
+    if  (!callbackHDAWAKE->AFGNodePtr && retrievedCurrentNodeID &&
+        currentNodeBeingProcessed == callbackHDAWAKE->selectedNodeForRecovery &&
+        retrievedCurrentVendorProductID &&
+        currentCodecBeingProcessed == callbackHDAWAKE->selectedCodecForRecovery)
+        callbackHDAWAKE->AFGNodePtr = that;
     
     // Delay entry into D0 for the selected AFG node.
     if (powerState == 0 &&
@@ -128,6 +160,12 @@ void HDAWAKE::loadConfiguration(DeviceInfo *deviceInfo) {
                 callbackHDAWAKE->afgRecoveryEnabled = true;
             }
             
+            OSData *afgForceEnabledValue = OSDynamicCast(OSData, hdef->getProperty("afg-force"));
+            if (afgForceEnabledValue && afgForceEnabledValue->getLength() > 0 &&
+                static_cast<const uint8_t *>(afgForceEnabledValue->getBytesNoCopy())[0] != 0) {
+                callbackHDAWAKE->afgForceEnabled = true;
+            }
+            
             if (WIOKit::getOSDataValue(hdef, "afg-node", callbackHDAWAKE->selectedNodeForRecovery)) {
                 DBGLOG("afg", "selected node: %u", callbackHDAWAKE->selectedNodeForRecovery);
             }
@@ -162,8 +200,11 @@ void HDAWAKE::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_
             
             loadConfiguration(DeviceInfo::create());
             
-            KernelPatcher::RouteRequest request("__ZN12AppleHDANode13setPowerStateEjb", wrapSetPowerState, orgSetPowerState);
-            patcher.routeMultiple(index, &request, 1, address, size);
+            KernelPatcher::RouteRequest requests[] {
+                KernelPatcher::RouteRequest("__ZN12AppleHDANode13setPowerStateEjb", wrapSetPowerState, orgSetPowerState),
+                KernelPatcher::RouteRequest(symPerformFormatChange, performFormatChange, orgPerformFormatChange)
+            };
+            patcher.routeMultiple(index, requests, address, size);
             
             if (patcher.getError() == KernelPatcher::Error::NoError) {
                 DBGLOG("hdawake", "setPowerState hook installed");

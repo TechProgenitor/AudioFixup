@@ -10,7 +10,9 @@
 
 #include <Headers/kern_patcher.hpp>
 #include <IOKit/IOService.h>
+#include <IOKit/audio/IOAudioStream.h>
 
+class AppleHDAEngineOutput;
 class AppleHDANode;
 class DeviceInfo;
 
@@ -38,6 +40,7 @@ private:
     
     void loadConfiguration(DeviceInfo *deviceInfo);
     bool afgRecoveryEnabled = false;
+    bool afgForceEnabled = false;
     uint8_t selectedNodeForRecovery = 1;
     uint32_t selectedCodecForRecovery = 0;
     uint32_t d0EntryDelay = 0;
@@ -76,6 +79,23 @@ private:
      * Concurrent Thread for Deferring D0
      */
     static void recoverAFG(thread_call_param_t param0, thread_call_param_t param1);
+    
+    /**
+     *  performFormatChange method symbol
+     */
+    static constexpr const char *symPerformFormatChange = "__ZN20AppleHDAEngineOutput19performFormatChangeEP13IOAudioStreamPK20_IOAudioStreamFormatPK18_IOAudioSampleRate";
+    
+    /**
+     *  Hooked performFormatChange method triggering a verb sequence on jack event
+     */
+    static int performFormatChange(AppleHDAEngineOutput *that, IOAudioStream *stream, const IOAudioStreamFormat *format, const IOAudioSampleRate *samplerate);
+    
+    /**
+     *  AppleHDAEngineOutput::performFormatChange original method
+     */
+    mach_vm_address_t orgPerformFormatChange {0};
+    
+    AppleHDANode *AFGNodePtr = nullptr;
     
     /**
      * Current progress mask
