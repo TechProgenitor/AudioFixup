@@ -3,7 +3,6 @@ AudioFixup Changelog
 
 #### v1.2.0
 - Added `afg-force` device property.
-- Added `audio-port#-force` device property.
 - Moved AFG and display_change_handler configuration from boot arguments to device properties:
   - `afgondelay` -> `afg-delay`
   - `afgrecovery` -> `afg-recovery`
