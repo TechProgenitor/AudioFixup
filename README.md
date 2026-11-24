@@ -52,7 +52,7 @@ The following properties are added to the `IGPU` and/or `GFX#` device(s).
 | `audio-port#-pin` | Set the `Digital Pin` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-end` | Set the `Active Display Endpoint` byte for a given `port-number` when hotplugged to a specified value. |
 
-The following properties are added to the `HDAS` and/or `HDEF` device(s).
+The following properties are added to the `HDAS` or `HDEF` device.
 
 | Property | Description |
 |---------|-------------|
