@@ -45,23 +45,28 @@ The following properties are added to the `IGPU` and/or `GFX#` device(s).
 | Property | Description |
 |---------|-------------|
 | `audio-patch-enable` | Enable the audio patching mechanism. |
+| `audio-port#-delay` | Configure the delay in microseconds after a hotplug event before handling a display change on the specified port. |
 | `audio-port#-info` | Set the `audio-codec-info` device property for a given `port-number` when hotplugged to a specified value. <br><br> This property takes precedence over the individual byte-configuration properties. When it is specified, the individual byte properties below are ignored. |
 | `audio-port#-adr` | Set the `Codec Address` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-afg` | Set the `Audio Function Group` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-pin` | Set the `Digital Pin` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-end` | Set the `Active Display Endpoint` byte for a given `port-number` when hotplugged to a specified value. |
 
+The following properties are added to the `HDAS` and/or `HDEF` device(s).
+
+| Property | Description |
+|---------|-------------|
+| `afg-delay` | Configure the delay in microseconds before the AFG power state is set to D0. |
+| `afg-recovery` | Set the AFG power state back to D0 after being set to D1, D2, D3, or D4. |
+| `afg-codec` | Limit the `afg-delay` and `afg-recovery` device properties to the specified `VendorProductID`. <br><br> `VendorProductID` values are stored in the `CodecList` property of `AppleHDAController` in the IORegistry. |
+| `afg-force` | Force the AFG node to reinitialize when an audio output change is detected. <br><br> Useful for DAW users who need to switch between headphones and speakers. Note: `afg-codec` must be configured correctly for `afg-force` to work. |
+| `afg-node` | Select the AFG node ID used for the `afg-delay` and `afg-recovery` device properties (default: 1). |
+
 ### Boot Arguments
-The AFG-related arguments only apply to codecs that use AppleHDA.
 
 | Argument | Description |
 |---------|-------------|
 | `audio-codec-info` | Apple boot-arg which sets the `audio-codec-info` device property on all hotplugged ports to a specified value. <br><br> This argument takes precedence over the `audio-port#-info` property. When it is specified, the `audio-port#-info` property is ignored.|
-| `afgondelay` | Configure the delay in microseconds before the AFG power state is set to D0. |
-| `afgrecovery=1` | Set the AFG power state back to D0 after being set to D1, D2, D3, or D4. |
-| `afgcodec` | Limit the `afgondelay` and `afgrecovery` boot-args to the specified `VendorProductID`. <br><br> `VendorProductID` values are stored in the `CodecList` property of `AppleHDAController` in the IORegistry. |
-| `afgnode` | Select the AFG node ID used for the `afgondelay` and `afgrecovery` boot-args (default: 1). |
-| `displaychangedelay` | Configure the delay in microseconds after a hotplug event before the display change is handled. |
 | `-afbeta` | Enable AudioFixup on unsupported macOS versions (26 and below are enabled by default) |
 | `-afdbg` | Enable debug printing (available in DEBUG binaries) |
 | `-afoff` | Disable AudioFixup |

@@ -53,15 +53,13 @@ void CodecInfo::deinit() {}
 void CodecInfo::populateCodecInfo(IORegistryEntry *currentGPU, IORegistryEntry *framebuffer, const char *propertyName) {
     
     OSObject *codecInfo = currentGPU->getProperty(propertyName);
-    uint32_t codecInfoValue = 0;
     
     // Checks if the input is data
     if (OSData *data = OSDynamicCast(OSData, codecInfo)) {
         
         if (data->getLength() == 4) {
-            memcpy(&codecInfoValue, data->getBytesNoCopy(), 4);
             
-            if (framebuffer->setProperty("audio-codec-info", &codecInfoValue, 4)) {
+            if (framebuffer->setProperty("audio-codec-info", data)) {
                 DBGLOG("codecinfo", "Successfully replaced %s", propertyName);
             } else {
                 SYSLOG("codecinfo", "Failed to replace %s", propertyName);
@@ -75,7 +73,9 @@ void CodecInfo::populateCodecInfo(IORegistryEntry *currentGPU, IORegistryEntry *
     else if (OSNumber *number = OSDynamicCast(OSNumber, codecInfo)) {
         
         if (number->unsigned64BitValue() <= UINT32_MAX) {
-            codecInfoValue = number->unsigned32BitValue();
+            
+            // Used to convert the OSNumber into OSData.
+            uint32_t codecInfoValue = number->unsigned32BitValue();
             
             if (framebuffer->setProperty("audio-codec-info", &codecInfoValue, 4)) {
                 DBGLOG("codecinfo", "Successfully replaced %s", propertyName);
