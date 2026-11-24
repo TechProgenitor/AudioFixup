@@ -1,6 +1,16 @@
 AudioFixup Changelog
 =============================
 
+#### v1.2.0
+- Added `afg-force` device property.
+- Added `audio-port#-force` device property.
+- Moved AFG and display_change_handler configuration from boot arguments to device properties:
+  - `afgondelay` -> `afg-delay`
+  - `afgrecovery` -> `afg-recovery`
+  - `afgcodec` -> `afg-codec`
+  - `afgnode` -> `afg-node`
+  - `displaychangedelay` (global config) -> `audio-port#-delay` (per-port config)
+
 #### v1.1.0
 - Renamed `audio-port#-codec-info` to `audio-port#-info`.
 - Added byte-offset configuration properties for `audio-codec-info`:
