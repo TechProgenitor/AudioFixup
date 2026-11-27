@@ -1,6 +1,11 @@
 AudioFixup Changelog
 =============================
 
+#### v1.2.1
+- Remove the `afg-codec` configuration property.
+- Automatically identify analog codecs using PCI vendor IDs.
+- Avoid unnecessary AFG operations on digital codecs.
+
 #### v1.2.0
 - Added `afg-force` device property.
 - Migrated AFG and display_change_handler configuration from boot arguments to device properties:
