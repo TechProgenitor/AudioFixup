@@ -46,7 +46,7 @@ The following properties are added to the `IGPU` and/or `GFX#` device(s).
 |---------|-------------|
 | `audio-patch-enable` | Enable the audio patching mechanism. |
 | `audio-port#-delay` | Configure the delay in microseconds after a hotplug event before handling a display change on the specified port. |
-| `audio-port#-info` | Set the `audio-codec-info` device property for a given `port-number` when hotplugged to a specified value. <br><br> This property takes precedence over the individual byte-configuration properties. When it is specified, the individual byte properties below are ignored. |
+| `audio-port#-info` | Set the `audio-codec-info` device property for a given `port-number` when hotplugged to a specified value. This property takes precedence over the individual byte-configuration properties. When it is specified, the individual byte properties below are ignored. |
 | `audio-port#-adr` | Set the `Codec Address` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-afg` | Set the `Audio Function Group` byte for a given `port-number` when hotplugged to a specified value. |
 | `audio-port#-pin` | Set the `Digital Pin` byte for a given `port-number` when hotplugged to a specified value. |
@@ -58,14 +58,14 @@ The following properties are added to the `HDAS` or `HDEF` device.
 |---------|-------------|
 | `afg-delay` | Configure the delay in microseconds before the AFG power state is set to D0. |
 | `afg-recovery` | Set the AFG power state back to D0 after being set to D1, D2, D3, or D4. |
-| `afg-force` | Force the AFG node to reinitialize when an audio output change is detected. <br><br> Useful for DAW users who need to switch between headphones and speakers. Note: `afg-codec` must be configured correctly for `afg-force` to work. |
+| `afg-force` | Force the AFG node to reinitialize when an audio output change is detected. Useful for DAW users who lose sound when auto-switching between headphones and speakers. |
 | `afg-node` | Select the AFG node ID used for the `afg-delay` and `afg-recovery` device properties (default: 1). |
 
 ### Boot Arguments
 
 | Argument | Description |
 |---------|-------------|
-| `audio-codec-info` | Apple boot-arg which sets the `audio-codec-info` device property on all hotplugged ports to a specified value. <br><br> This argument takes precedence over the `audio-port#-info` property. When it is specified, the `audio-port#-info` property is ignored.|
+| `audio-codec-info` | Apple boot-arg which sets the `audio-codec-info` device property on all hotplugged ports to a specified value. This argument takes precedence over the `audio-port#-info` property. When it is specified, the `audio-port#-info` property is ignored.|
 | `-afbeta` | Enable AudioFixup on unsupported macOS versions (26 and below are enabled by default) |
 | `-afdbg` | Enable debug printing (available in DEBUG binaries) |
 | `-afoff` | Disable AudioFixup |
