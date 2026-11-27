@@ -58,7 +58,7 @@ The following properties are added to the `HDAS` or `HDEF` device.
 |---------|-------------|
 | `afg-delay` | Configure the delay in microseconds before the AFG power state is set to D0. |
 | `afg-recovery` | Set the AFG power state back to D0 after being set to D1, D2, D3, or D4. |
-| `afg-force` | Force the AFG node to reinitialize when an audio output change is detected. Useful for DAW users who lose sound when auto-switching between headphones and speakers. |
+| `afg-force` | Force the AFG node to reinitialize when an audio output change is detected. Useful for DAW users who lose sound when switching between headphones and speakers. |
 | `afg-node` | Select the AFG node ID used for the `afg-delay` and `afg-recovery` device properties (default: 1). |
 
 ### Boot Arguments
