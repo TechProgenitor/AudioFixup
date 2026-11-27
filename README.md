@@ -58,7 +58,6 @@ The following properties are added to the `HDAS` or `HDEF` device.
 |---------|-------------|
 | `afg-delay` | Configure the delay in microseconds before the AFG power state is set to D0. |
 | `afg-recovery` | Set the AFG power state back to D0 after being set to D1, D2, D3, or D4. |
-| `afg-codec` | Limit the `afg-delay` and `afg-recovery` device properties to the specified `VendorProductID`. <br><br> `VendorProductID` values are stored in the `CodecList` property of `AppleHDAController` in the IORegistry. |
 | `afg-force` | Force the AFG node to reinitialize when an audio output change is detected. <br><br> Useful for DAW users who need to switch between headphones and speakers. Note: `afg-codec` must be configured correctly for `afg-force` to work. |
 | `afg-node` | Select the AFG node ID used for the `afg-delay` and `afg-recovery` device properties (default: 1). |
 

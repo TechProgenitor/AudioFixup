@@ -42,7 +42,6 @@ private:
     bool afgRecoveryEnabled = false;
     bool afgForceEnabled = false;
     uint8_t selectedNodeForRecovery = 1;
-    uint32_t selectedCodecForRecovery = 0;
     uint32_t d0EntryDelay = 0;
 
     /**

@@ -82,54 +82,44 @@ int HDAWAKE::performFormatChange(AppleHDAEngineOutput *that, IOAudioStream *stre
 
 int HDAWAKE::wrapSetPowerState(AppleHDANode *that, uint powerState, bool force) {
     
+    // Retrieve current Node ID being processed
     uint8_t currentNodeBeingProcessed = 0;
     bool retrievedCurrentNodeID = callbackHDAWAKE->orgNodeID != nullptr;
     if (retrievedCurrentNodeID)
         currentNodeBeingProcessed = callbackHDAWAKE->orgNodeID(that);
     
-    uint32_t currentCodecBeingProcessed = 0;
+    // Check that current codec only has analog I/O.
+    bool isAnalogCodec = false;
     bool retrievedCurrentVendorProductID = callbackHDAWAKE->orgVendorProductID != nullptr;
-    if (retrievedCurrentVendorProductID)
-        currentCodecBeingProcessed = static_cast<uint32_t>(callbackHDAWAKE->orgVendorProductID(that) & 0xffffffff);
+    if (retrievedCurrentVendorProductID) {
+        uint16_t currentVendorID = callbackHDAWAKE->orgVendorProductID(that) >> 16;
+        isAnalogCodec = currentVendorID != 0x8086 &&  // Intel
+                        currentVendorID != 0x1002 &&  // AMD
+                        currentVendorID != 0x10DE;    // NVIDIA
+    }
     
     // Capture AppleHDANode pointer for afg-force device property.
-    // afg-codec device property must be set properly to use this.
-    if  (!callbackHDAWAKE->AFGNodePtr && retrievedCurrentNodeID &&
+    if (!callbackHDAWAKE->AFGNodePtr && retrievedCurrentNodeID &&
         currentNodeBeingProcessed == callbackHDAWAKE->selectedNodeForRecovery &&
-        retrievedCurrentVendorProductID &&
-        currentCodecBeingProcessed == callbackHDAWAKE->selectedCodecForRecovery)
+        retrievedCurrentVendorProductID && isAnalogCodec)
         callbackHDAWAKE->AFGNodePtr = that;
     
     // Delay entry into D0 for the selected AFG node.
-    if (powerState == 0 &&
-        retrievedCurrentNodeID &&
-        currentNodeBeingProcessed == callbackHDAWAKE->selectedNodeForRecovery) {
-        
-        if (callbackHDAWAKE->selectedCodecForRecovery == 0 ||
-            (retrievedCurrentVendorProductID &&
-            currentCodecBeingProcessed == callbackHDAWAKE->selectedCodecForRecovery)) {
-            
-            if (callbackHDAWAKE->d0EntryDelay > 0)
-                IODelay(callbackHDAWAKE->d0EntryDelay);
-        }
+    if (powerState == 0 && retrievedCurrentNodeID &&
+        currentNodeBeingProcessed == callbackHDAWAKE->selectedNodeForRecovery &&
+        isAnalogCodec && callbackHDAWAKE->d0EntryDelay > 0) {
+            IODelay(callbackHDAWAKE->d0EntryDelay);
     }
             
     int ret = FunctionCast(wrapSetPowerState, callbackHDAWAKE->orgSetPowerState)(that, powerState, force);
     
     // Schedule deferred AFG recovery when the selected node exits D0.
-    if (powerState > 0 &&
-        retrievedCurrentNodeID &&
-        currentNodeBeingProcessed == callbackHDAWAKE->selectedNodeForRecovery) {
-                
-        if (callbackHDAWAKE->afgRecoveryEnabled && (callbackHDAWAKE->selectedCodecForRecovery == 0 ||
-            (retrievedCurrentVendorProductID &&
-            currentCodecBeingProcessed == callbackHDAWAKE->selectedCodecForRecovery))) {
-            
-            // Queue deferred AFG D0 recovery.
-            if (afgRecoveryCall != nullptr) {
-                thread_call_enter1(afgRecoveryCall, reinterpret_cast<thread_call_param_t>(that));
-            }
-        }
+    if (powerState > 0 && retrievedCurrentNodeID &&
+        currentNodeBeingProcessed == callbackHDAWAKE->selectedNodeForRecovery &&
+        isAnalogCodec && callbackHDAWAKE->afgRecoveryEnabled) {
+        // Queue deferred AFG D0 recovery.
+        if (afgRecoveryCall != nullptr)
+            thread_call_enter1(afgRecoveryCall, reinterpret_cast<thread_call_param_t>(that));
     }
         
     return ret;
@@ -168,10 +158,6 @@ void HDAWAKE::loadConfiguration(DeviceInfo *deviceInfo) {
             
             if (WIOKit::getOSDataValue(hdef, "afg-node", callbackHDAWAKE->selectedNodeForRecovery)) {
                 DBGLOG("afg", "selected node: %u", callbackHDAWAKE->selectedNodeForRecovery);
-            }
-            
-            if (WIOKit::getOSDataValue(hdef, "afg-codec", callbackHDAWAKE->selectedCodecForRecovery)) {
-                DBGLOG("afg", "selected codec: %08X", callbackHDAWAKE->selectedCodecForRecovery);
             }
             
             if (WIOKit::getOSDataValue(hdef, "afg-delay", callbackHDAWAKE->d0EntryDelay)) {
